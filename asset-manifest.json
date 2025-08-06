@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.js": "/stmt-analyzerFE/static/js/main.75065342.js",
+    "main.js": "/stmt-analyzerFE/static/js/main.db699961.js",
     "index.html": "/stmt-analyzerFE/index.html",
-    "main.75065342.js.map": "/stmt-analyzerFE/static/js/main.75065342.js.map"
+    "main.db699961.js.map": "/stmt-analyzerFE/static/js/main.db699961.js.map"
   },
   "entrypoints": [
-    "static/js/main.75065342.js"
+    "static/js/main.db699961.js"
   ]
 }
