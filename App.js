@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Papa from 'papaparse';
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://statement-analyzer-h0x1.onrender.com';
+const API_URL = "https://statement-analyzer-h0x1.onrender.com";
 
 function App() {
   const [file, setFile] = useState(null);
