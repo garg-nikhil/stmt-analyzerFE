@@ -1,5 +1,6 @@
 {
   "name": "pdf-extract-frontend",
+  "homepage": "https://garg-nikhil.github.io/stmt-analyzerFE/",
   "version": "1.0.0",
   "private": true,
   "dependencies": {
@@ -9,7 +10,8 @@
     "react-scripts": "5.0.1"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build"
-  }
+  "predeploy": "npm run build",
+  "deploy": "gh-pages -d build"
+}
+
 }
