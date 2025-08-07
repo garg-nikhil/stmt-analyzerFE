@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
-import Papa from 'papaparse';
-// Assuming the backend API URL is set correctly
+
 const API_URL = "https://statement-analyzer-h0x1.onrender.com/process";
 
-function App() {
+function PdfUpload() {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [uploadSuccess, setUploadSuccess] = useState(null);
+  const [uploadMessage, setUploadMessage] = useState("");
 
-  const onFileChange = e => {
+  const handleFileChange = (e) => {
     setFile(e.target.files[0]);
-    setData(null);
+    // Reset previous states on new file selection
     setError(null);
+    setUploadSuccess(null);
+    setUploadMessage("");
   };
 
   const handleUpload = async () => {
@@ -22,106 +24,67 @@ function App() {
     }
     setLoading(true);
     setError(null);
-    setData(null);
+    setUploadSuccess(null);
+    setUploadMessage("");
+
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await fetch(API_URL, {
+
+      const response = await fetch(API_URL, {
         method: 'POST',
         body: formData
       });
-      if (!res.ok) {
-        throw new Error(`Error: ${res.statusText}`);
+
+      if (!response.ok) {
+        // Try to parse JSON error if possible
+        let errMessage = response.statusText;
+        try {
+          const errData = await response.json();
+          if (errData.error) errMessage = errData.error;
+        } catch {}
+        throw new Error(errMessage);
       }
-      const json = await res.json();
-      if (json.error) {
-        setError(json.error);
+
+      const result = await response.json();
+
+      if (result.error) {
+        setError(result.error);
+        setUploadSuccess(false);
       } else {
-        setData(json);
+        setUploadSuccess(true);
+        setUploadMessage(`Upload successful for month: ${result.month}. Rows sent: ${result.rows_sent}.`);
       }
     } catch (err) {
       setError(err.message);
+      setUploadSuccess(false);
     } finally {
       setLoading(false);
     }
   };
 
-  // Helper to convert JSON data by vendor & type to CSV string
-  const exportCsv = (vendor, type) => {
-    if (!data || !data[vendor] || !data[vendor][type]) return;
-
-    const csvString = Papa.unparse(data[vendor][type].map(txn => ({
-      Date: txn.date,
-      Amount: txn.amount,
-      Description: txn.desc || ''
-    })));
-
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `${vendor}-${type}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   return (
-    <div style={{ maxWidth: 800, margin: 'auto', fontFamily: 'Arial, sans-serif', padding: 20 }}>
-      <h1>PDF Extractor - Vendor & Credit/Debit Segregation</h1>
-      <input type="file" accept="application/pdf" onChange={onFileChange} />
-      <button onClick={handleUpload} disabled={loading || !file} style={{ marginLeft: 10 }}>
-        {loading ? 'Processing...' : 'Upload & Process'}
+    <div style={{ maxWidth: 400, margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
+      <h2>Upload PDF Statement</h2>
+      <input type="file" accept="application/pdf" onChange={handleFileChange} />
+      <br /><br />
+      <button onClick={handleUpload} disabled={loading}>
+        {loading ? 'Uploading...' : 'Upload'}
       </button>
-      {error && <div style={{ color: 'red', marginTop: 20 }}>Error: {error}</div>}
-      {data && (
-        <div style={{ marginTop: 30 }}>
-          <h2>Extracted Transaction Summary</h2>
-          {Object.entries(data).map(([vendor, types]) => (
-            <div key={vendor} style={{ marginBottom: 30 }}>
-              <h3>{vendor}</h3>
-              {['credit', 'debit'].map(type => (
-                <div key={type} style={{ marginBottom: 20 }}>
-                  <h4 style={{ textTransform: 'capitalize' }}>{type}</h4>
-                  {types[type].length > 0 ? (
-                    <>
-                      <table border="1" cellPadding="5" cellSpacing="0" style={{ borderCollapse: 'collapse', width: '100%' }}>
-                        <thead>
-                          <tr>
-                            <th>Date</th>
-                            <th>Amount</th>
-                            <th>Description</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {types[type].map((txn, i) => (
-                            <tr key={i}>
-                              <td>{txn.date}</td>
-                              <td>{txn.amount}</td>
-                              <td>{txn.desc || ''}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                      <button onClick={() => exportCsv(vendor, type)} style={{ marginTop: 5 }}>
-                        Download {type} CSV
-                      </button>
-                    </>
-                  ) : (
-                    <p>No {type} transactions.</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          ))}
+
+      {uploadSuccess === true && (
+        <div style={{ marginTop: 20, color: 'green' }}>
+          {uploadMessage}
         </div>
       )}
-      <footer style={{ marginTop: 50, fontSize: 12, color: '#666' }}>
-        Powered by React + Your Flask Backend on Render
-      </footer>
+
+      {uploadSuccess === false && error && (
+        <div style={{ marginTop: 20, color: 'red' }}>
+          Error: {error}
+        </div>
+      )}
     </div>
   );
 }
 
-export default App;
+export default PdfUpload;
