@@ -1,25 +1,24 @@
 import React, { useState } from 'react';
 
-const API_URL = "https://statement-analyzer-h0x1.onrender.com/process";// Replace with your backend endpoint
+const API_URL = "https://statement-analyzer-h0x1.onrender.com/process"; // Replace with your backend endpoint
 
-function PdfUpload() {
-  const [file, setFile] = useState(null);
+function MultiPdfUpload() {
+  const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [uploadSuccess, setUploadSuccess] = useState(null);
   const [uploadMessage, setUploadMessage] = useState("");
 
   const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
-    // Reset previous states on new file selection
+    setFiles(Array.from(e.target.files));
     setError(null);
     setUploadSuccess(null);
     setUploadMessage("");
   };
 
   const handleUpload = async () => {
-    if (!file) {
-      alert('Please select a PDF file first!');
+    if (files.length === 0) {
+      alert('Please select one or more PDF files first!');
       return;
     }
     setLoading(true);
@@ -29,7 +28,9 @@ function PdfUpload() {
 
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      files.forEach(file => {
+        formData.append('files', file);
+      });
 
       const response = await fetch(API_URL, {
         method: 'POST',
@@ -37,7 +38,6 @@ function PdfUpload() {
       });
 
       if (!response.ok) {
-        // Try to parse JSON error if possible
         let errMessage = response.statusText;
         try {
           const errData = await response.json();
@@ -53,7 +53,17 @@ function PdfUpload() {
         setUploadSuccess(false);
       } else {
         setUploadSuccess(true);
-        setUploadMessage(`Upload successful for month: ${result.month}. Rows sent: ${result.rows_sent}.`);
+
+        if (result.monthly_results) {
+          const messages = Object.entries(result.monthly_results).map(
+            ([month, info]) => `${month}: ${info.rows_sent} rows`
+          );
+          setUploadMessage(`Upload successful for months:\n${messages.join('\n')}`);
+        } else if (result.month && result.rows_sent) {
+          setUploadMessage(`Upload successful for month: ${result.month}. Rows sent: ${result.rows_sent}.`);
+        } else {
+          setUploadMessage('Upload successful.');
+        }
       }
     } catch (err) {
       setError(err.message);
@@ -64,18 +74,23 @@ function PdfUpload() {
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
-      <h2>Upload PDF Statement</h2>
-      <input type="file" accept="application/pdf" onChange={handleFileChange} />
+    <div style={{ maxWidth: 500, margin: '20px auto', fontFamily: 'Arial, sans-serif' }}>
+      <h2>Upload Multiple PDF Statements</h2>
+      <input 
+        type="file" 
+        accept="application/pdf" 
+        multiple 
+        onChange={handleFileChange} 
+      />
       <br /><br />
       <button onClick={handleUpload} disabled={loading}>
         {loading ? 'Uploading...' : 'Upload'}
       </button>
 
       {uploadSuccess === true && (
-        <div style={{ marginTop: 20, color: 'green' }}>
+        <pre style={{ marginTop: 20, color: 'green', whiteSpace: 'pre-wrap' }}>
           {uploadMessage}
-        </div>
+        </pre>
       )}
 
       {uploadSuccess === false && error && (
@@ -87,4 +102,4 @@ function PdfUpload() {
   );
 }
 
-export default PdfUpload;
+export default MultiPdfUpload;
